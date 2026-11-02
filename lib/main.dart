@@ -11,7 +11,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Calculator App',
       theme: ThemeData(
         // This is the theme of your application.
         //
@@ -30,7 +30,7 @@ class MyApp extends StatelessWidget {
         // tested with just a hot reload.
         colorScheme: .fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MyHomePage(title: 'Calculator App'),
     );
   }
 }
@@ -53,22 +53,121 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
+typedef CalculatorMethod = void Function(int value);
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+  /* ---------- Calculator Methods ---------- */
+  late final Map<String, CalculatorMethod> calculatorMethods = {
+    '+': _add,
+    '-': _subtract,
+    '*': _multiply,
+    '/': _divide,
+  };
 
-  void _incrementCounter() {
+  /* ---------- State Variables ---------- */
+  int? _answer;
+  bool _hasCompletedInitialCalculation = false;
+  CalculatorMethod? _selectedMethod;
+  int? _nextValue;
+
+  /* ---------- Operations ---------- */
+  void _add(int value) {
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      if (_answer is! int) {
+        throw Exception("Answer is null, cannot add");
+      }
+      _answer = _answer! + value;
+    });
+  }
+  void _subtract(int value) {
+    setState(() {
+      if (_answer is! int) {
+        throw Exception("Answer is null, cannot subtract");
+      }
+      _answer = _answer! - value;
+    });
+  }
+  void _multiply(int value) {
+    setState(() {
+      if (_answer is! int) {
+        throw Exception("Answer is null, cannot multiply");
+      }
+      _answer = _answer! * value;
+    });
+  }
+  void _divide(int value) {
+    setState(() {
+      if (_answer is! int) {
+        throw Exception("Answer is null, cannot divide");
+      }
+      if (value != 0) {
+        _answer = _answer! ~/ value; // Integer division
+      } else {
+        throw Exception("Cannot divide by zero");
+      }
+    });
+  }
+
+  /* ---------- Number Input Handlers ---------- */
+  int appendDigit(int currentValue, int latestInput) {
+    return currentValue * 10 + latestInput;
+  }
+  void _updateAnswer(int number) {
+    setState(() {
+      _answer = _answer == null ? number : appendDigit(_answer!, number);
+    });
+  }
+  void _updateNextValue(int number) {
+    setState(() {
+      _nextValue = _nextValue == null ? number : appendDigit(_nextValue!, number);
+    });
+  }
+  void _numberButtonPressed(int number) {
+    if (_selectedMethod == null && _hasCompletedInitialCalculation == false) {
+      _updateAnswer(number);
+    } else if (_selectedMethod != null) {
+      _updateNextValue(number);
+    } else {
+      _resetCalculator(number);
+    }
+  }
+
+  /* ---------- Operator Input Handlers ---------- */
+  void _operationButtonPressed(CalculatorMethod method) {
+    setState(() {
+        _answer ??= 0;
+        _selectedMethod = method;
+    });
+  }
+
+  /* ---------- Calculate Result ---------- */
+  void _calculateResult() {
+    if (_answer != null && _selectedMethod != null && _nextValue != null) {
+      _hasCompletedInitialCalculation = true;
+      _selectedMethod!(_nextValue!);
+      setState(() {
+        _nextValue = null;
+        _selectedMethod = null;
+      });
+    }
+  }
+
+  /* ---------- Reset Functions ---------- */
+  void _resetCalculator(int? initialValue) {
+    setState(() {
+      _answer = initialValue;
+      _nextValue = null;
+      _selectedMethod = null;
+      _hasCompletedInitialCalculation = false;
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    const buttonPadding = EdgeInsets.all(8.0);
+    String? methodString = _selectedMethod != null ? calculatorMethods.keys.firstWhere((k) => calculatorMethods[k] == _selectedMethod) : null;
+    String? nextValueString = _nextValue?.toString();
+    List<String?> displayValues = [_answer.toString(), methodString, nextValueString].where((element) => element != null).toList();
+    String displayText = displayValues.join(' ');
     // This method is rerun every time setState is called, for instance as done
     // by the _incrementCounter method above.
     //
@@ -102,20 +201,40 @@ class _MyHomePageState extends State<MyHomePage> {
           // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
           // action in the IDE, or press "p" in the console), to see the
           // wireframe for each widget.
-          mainAxisAlignment: .center,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text('You have pushed the button this many times:'),
+            const Text('Current Sum:'),
             Text(
-              '$_counter',
+              displayText,
               style: Theme.of(context).textTheme.headlineMedium,
             ),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
+      bottomSheet: Padding(
+        padding: buttonPadding,
+        child: Wrap(
+          direction: Axis.horizontal,
+          alignment: WrapAlignment.start,
+          spacing: 10.0,
+          runSpacing: 10.0,
+          children: [
+            for (int i = 0; i <= 9; i++)
+              ElevatedButton(
+                onPressed: () => _numberButtonPressed(i),
+                child: Text('$i'),
+              ),
+            for (String method in calculatorMethods.keys)
+              ElevatedButton(
+                onPressed: () => _operationButtonPressed(calculatorMethods[method]!),
+                child: Text(method),
+              ),
+              ElevatedButton(
+                onPressed: _calculateResult,
+                child: const Text('='),
+              ),
+          ],
+        ),
       ),
     );
   }
