@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 
 void main() {
@@ -73,7 +74,7 @@ class _MyHomePageState extends State<MyHomePage> {
   void _add(int value) {
     setState(() {
       if (_answer is! int) {
-        throw Exception("Answer is null, cannot add");
+        throw FormatException("Answer is null, cannot add");
       }
       _answer = _answer! + value;
     });
@@ -81,7 +82,7 @@ class _MyHomePageState extends State<MyHomePage> {
   void _subtract(int value) {
     setState(() {
       if (_answer is! int) {
-        throw Exception("Answer is null, cannot subtract");
+        throw FormatException("Answer is null, cannot subtract");
       }
       _answer = _answer! - value;
     });
@@ -89,7 +90,7 @@ class _MyHomePageState extends State<MyHomePage> {
   void _multiply(int value) {
     setState(() {
       if (_answer is! int) {
-        throw Exception("Answer is null, cannot multiply");
+        throw FormatException("Answer is null, cannot multiply");
       }
       _answer = _answer! * value;
     });
@@ -97,12 +98,12 @@ class _MyHomePageState extends State<MyHomePage> {
   void _divide(int value) {
     setState(() {
       if (_answer is! int) {
-        throw Exception("Answer is null, cannot divide");
+        throw FormatException("Answer is null, cannot divide");
       }
       if (value != 0) {
         _answer = _answer! ~/ value; // Integer division
       } else {
-        throw Exception("Cannot divide by zero");
+        throw ArgumentError("Cannot divide by zero");
       }
     });
   }
@@ -143,12 +144,36 @@ class _MyHomePageState extends State<MyHomePage> {
   void _calculateResult() {
     if (_answer != null && _selectedMethod != null && _nextValue != null) {
       _hasCompletedInitialCalculation = true;
+      try {
+        _selectedMethod!(_nextValue!);
+      } on ArgumentError catch (error) {
+        _showToast(error.message);
+        return;
+      } catch (error, stackTrace) {
+        developer.log(
+          'Calculation failed',
+          name: 'calculator',
+          error: error,
+          stackTrace: stackTrace,
+          level: 1
+        );
+        _showToast('Unexpected error occurred during calculation.');
+      }
       _selectedMethod!(_nextValue!);
       setState(() {
         _nextValue = null;
         _selectedMethod = null;
       });
     }
+  }
+
+  /* ---------- Toast Notification ---------- */
+  void _showToast(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(content: Text(message)),
+      );
   }
 
   /* ---------- Reset Functions ---------- */
