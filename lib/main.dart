@@ -196,9 +196,28 @@ class _MyHomePageState extends State<MyHomePage> {
     return text == '-0' ? '0' : text;
   }
 
+  Widget _keypadButton(String label, VoidCallback onPressed) {
+    return ElevatedButton(onPressed: onPressed, child: Text(label));
+  }
+
+  Widget _keypadRow(List<Widget?> buttons) {
+    return Row(
+      children: [
+        for (var index = 0; index < buttons.length; index++) ...[
+          if (index > 0) const SizedBox(width: 8),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: buttons[index] ?? const SizedBox.shrink(),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    const buttonPadding = EdgeInsets.all(8.0);
     final String? methodString = _selectedMethod != null
         ? calculatorMethods.keys.firstWhere(
             (k) => calculatorMethods[k] == _selectedMethod,
@@ -256,37 +275,61 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ),
       bottomSheet: Padding(
-        padding: buttonPadding,
-        child: Wrap(
-          direction: Axis.horizontal,
-          alignment: WrapAlignment.start,
-          spacing: 10.0,
-          runSpacing: 10.0,
+        padding: const EdgeInsets.all(8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            for (double i = 0; i <= 9; i++)
+            _keypadRow([
               ElevatedButton(
-                onPressed: () => _numberButtonPressed(i),
-                child: Text('${i.toInt()}'),
+                onPressed: _backspace,
+                child: const Icon(Icons.backspace),
               ),
-            for (String method in calculatorMethods.keys)
-              ElevatedButton(
-                onPressed: () =>
-                    _operationButtonPressed(calculatorMethods[method]!),
-                child: Text(method),
+              _keypadButton('AC', () => _resetCalculator(null)),
+              null,
+              _keypadButton(
+                '/',
+                () => _operationButtonPressed(calculatorMethods['/']!),
               ),
-            ElevatedButton(onPressed: _calculateResult, child: const Text('=')),
-            ElevatedButton(
-              onPressed: () => _resetCalculator(null),
-              child: const Text('AC'),
-            ),
-            ElevatedButton(
-              onPressed: () => _backspace(),
-              child: const Icon(Icons.backspace),
-            ),
-            ElevatedButton(
-              onPressed: () => _decimalButtonPressed(),
-              child: const Text('.'),
-            ),
+            ]),
+            _keypadRow([
+              for (final digit in [7, 8, 9])
+                _keypadButton(
+                  '$digit',
+                  () => _numberButtonPressed(digit.toDouble()),
+                ),
+              _keypadButton(
+                '*',
+                () => _operationButtonPressed(calculatorMethods['*']!),
+              ),
+            ]),
+            _keypadRow([
+              for (final digit in [4, 5, 6])
+                _keypadButton(
+                  '$digit',
+                  () => _numberButtonPressed(digit.toDouble()),
+                ),
+              _keypadButton(
+                '-',
+                () => _operationButtonPressed(calculatorMethods['-']!),
+              ),
+            ]),
+            _keypadRow([
+              for (final digit in [1, 2, 3])
+                _keypadButton(
+                  '$digit',
+                  () => _numberButtonPressed(digit.toDouble()),
+                ),
+              _keypadButton(
+                '+',
+                () => _operationButtonPressed(calculatorMethods['+']!),
+              ),
+            ]),
+            _keypadRow([
+              null,
+              _keypadButton('0', () => _numberButtonPressed(0)),
+              _keypadButton('.', _decimalButtonPressed),
+              _keypadButton('=', _calculateResult),
+            ]),
           ],
         ),
       ),
