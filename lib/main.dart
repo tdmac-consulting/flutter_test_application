@@ -1,4 +1,3 @@
-import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 
 void main() {
@@ -55,7 +54,10 @@ class MyHomePage extends StatefulWidget {
 }
 
 typedef CalculatorMethod = double Function(double left, double right);
+
 class _MyHomePageState extends State<MyHomePage> {
+  static const int _maxDecimalPlaces = 10;
+
   /* ---------- Calculator Methods ---------- */
   late final Map<String, CalculatorMethod> calculatorMethods = {
     '+': _add,
@@ -65,138 +67,150 @@ class _MyHomePageState extends State<MyHomePage> {
   };
 
   /* ---------- State Variables ---------- */
-  double? _left;
-  double? _right;
-  bool _hasCompletedInitialCalculation = false;
+  String? _left;
+  String? _right;
   CalculatorMethod? _selectedMethod;
-  double? _previousValue;
+  bool _hasCompletedInitialCalculation = false;
 
   /* ---------- Operations ---------- */
   double _add(double value, double right) {
     return value + right;
   }
+
   double _subtract(double value, double right) {
     return value - right;
   }
+
   double _multiply(double value, double right) {
     return value * right;
   }
+
   double _divide(double value, double right) {
     return value / right;
   }
 
-
   /* ---------- Number Input Handlers ---------- */
-  double appendDigit(double currentValue, double latestInput) {
-    return currentValue * 10 + latestInput;
-  }
-  void _updateLeft(double number) {
-    setState(() {
-      _left = _left == null ? number : appendDigit(_left!, number);
-    });
-  }
-  void __updateRight(double number) {
-    setState(() {
-      _right = _right == null ? number : appendDigit(_right!, number);
-    });
-  }
   void _numberButtonPressed(double number) {
-    _previousValue = number;
-    if (_selectedMethod == null && _hasCompletedInitialCalculation == false) {
-      _updateLeft(number);
-    } else if (_selectedMethod != null) {
-      __updateRight(number);
-    } else {
-      _resetCalculator(number);
+    final digit = number.toInt().toString();
+    if (_selectedMethod == null && _hasCompletedInitialCalculation) {
+      _resetCalculator(digit);
+      return;
     }
+
+    final currentValue = _selectedMethod == null ? _left : _right;
+    final decimalIndex = currentValue?.indexOf('.') ?? -1;
+    if (decimalIndex != -1 &&
+        currentValue!.length - decimalIndex - 1 >= _maxDecimalPlaces) {
+      return;
+    }
+
+    setState(() {
+      if (_selectedMethod == null) {
+        _left = '${_left ?? ''}$digit';
+      } else {
+        _right = '${_right ?? ''}$digit';
+      }
+    });
   }
 
-  /* ---------- Operator Input Handlers ---------- */
+  /* ---------- Operator & OtherInput Handlers ---------- */
   void _operationButtonPressed(CalculatorMethod method) {
     setState(() {
-        _left ??= 0;
-        _selectedMethod = method;
+      _left ??= '0';
+      _selectedMethod = method;
+    });
+  }
+
+  void _decimalButtonPressed() {
+    if (_selectedMethod == null && _hasCompletedInitialCalculation) {
+      _resetCalculator('0.');
+      return;
+    }
+
+    final currentValue = _selectedMethod == null ? _left : _right;
+    if (currentValue?.contains('.') ?? false) {
+      return;
+    }
+
+    setState(() {
+      final valueWithDecimal = '${currentValue ?? '0'}.';
+      if (_selectedMethod == null) {
+        _left = valueWithDecimal;
+      } else {
+        _right = valueWithDecimal;
+      }
     });
   }
 
   /* ---------- Calculate Result ---------- */
   void _calculateResult() {
-    if (_left != null && _selectedMethod != null && _right != null) {
-      _hasCompletedInitialCalculation = true;
-      try {
-        final result = _selectedMethod!(_left!, _right!);
-        setState(() {
-          _left = result;
-          _right = null;
-          _selectedMethod = null;
-        });
-      } catch (error, stackTrace) {
-        developer.log(
-          'Calculation failed',
-          name: 'calculator',
-          error: error,
-          stackTrace: stackTrace,
-          level: 1
-        );
-        _showToast('Unexpected error occurred during calculation.');
-      }
+    final left = double.tryParse(_left ?? '');
+    final right = double.tryParse(_right ?? '');
+    final method = _selectedMethod;
+    if (left == null || right == null || method == null) {
+      return;
     }
-  }
-
-  /* ---------- Toast Notification ---------- */
-  void _showToast(String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(content: Text(message)),
-      );
+    setState(() {
+      _left = _formatResult(method(left, right));
+      _right = null;
+      _selectedMethod = null;
+      _hasCompletedInitialCalculation = true;
+    });
   }
 
   /* ---------- Reset Functions ---------- */
-  void _resetCalculator(double? initialValue) {
+  void _resetCalculator(String? initialValue) {
     setState(() {
       _left = initialValue;
       _right = null;
-      _previousValue = null;
       _selectedMethod = null;
       _hasCompletedInitialCalculation = false;
     });
   }
-  double _calculatePreviousValue(double currentValue) {
-    return (currentValue - _previousValue!) / 10;
-  }
+
   void _backspace() {
     if (_right != null) {
       setState(() {
-        _right = _calculatePreviousValue(_right!);
+        _right = _removeLastCharacter(_right!);
       });
     } else if (_left != null) {
       setState(() {
-        _left = _calculatePreviousValue(_left!);
+        _left = _removeLastCharacter(_left!);
       });
     }
   }
 
-  /* ---------- Formatting and Display ---------- */
-  String? formatNumber(double? value) {
-  if (value == null) return null;
-  if (!value.isFinite) return value.toString();
-
-  var text = value.toStringAsFixed(10);
-  if (text.contains('.')) {
-    text = text.replaceFirst(RegExp(r'0+$'), '');
-    text = text.replaceFirst(RegExp(r'\.$'), '');
+  String? _removeLastCharacter(String value) {
+    return value.length == 1 ? null : value.substring(0, value.length - 1);
   }
-  return text == '-0' ? '0' : text;
-}
+
+  /* ---------- Formatting and Display ---------- */
+  String _formatResult(double value) {
+    if (!value.isFinite) return value.toString();
+
+    var text = value.toStringAsFixed(10);
+    if (text.contains('.')) {
+      text = text.replaceFirst(RegExp(r'0+$'), '');
+      text = text.replaceFirst(RegExp(r'\.$'), '');
+    }
+    return text == '-0' ? '0' : text;
+  }
 
   @override
   Widget build(BuildContext context) {
     const buttonPadding = EdgeInsets.all(8.0);
-    final String? methodString = _selectedMethod != null ? calculatorMethods.keys.firstWhere((k) => calculatorMethods[k] == _selectedMethod) : null;
-    final String? nextValueString = formatNumber(_right);
-    final String answerString = formatNumber(_left) ?? '0';
-    final List<String?> displayValues = [answerString, methodString, nextValueString].where((element) => element != null).toList();
+    final String? methodString = _selectedMethod != null
+        ? calculatorMethods.keys.firstWhere(
+            (k) => calculatorMethods[k] == _selectedMethod,
+          )
+        : null;
+    final String? nextValueString = _right;
+    final String answerString = _left ?? '0';
+    final List<String> displayValues = [
+      answerString,
+      methodString,
+      nextValueString,
+    ].whereType<String>().toList();
     final String displayText = displayValues.join(' ');
     // This method is rerun every time setState is called, for instance as done
     // by the _incrementCounter method above.
@@ -256,21 +270,23 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
             for (String method in calculatorMethods.keys)
               ElevatedButton(
-                onPressed: () => _operationButtonPressed(calculatorMethods[method]!),
+                onPressed: () =>
+                    _operationButtonPressed(calculatorMethods[method]!),
                 child: Text(method),
               ),
-              ElevatedButton(
-                onPressed: _calculateResult,
-                child: const Text('='),
-              ),
-              ElevatedButton(
-                onPressed: () => _resetCalculator(null),
-                child: const Text('AC'),
-              ),
-              ElevatedButton(
-                onPressed: () => _backspace(),
-                child: const Icon(Icons.backspace),
-              ),
+            ElevatedButton(onPressed: _calculateResult, child: const Text('=')),
+            ElevatedButton(
+              onPressed: () => _resetCalculator(null),
+              child: const Text('AC'),
+            ),
+            ElevatedButton(
+              onPressed: () => _backspace(),
+              child: const Icon(Icons.backspace),
+            ),
+            ElevatedButton(
+              onPressed: () => _decimalButtonPressed(),
+              child: const Text('.'),
+            ),
           ],
         ),
       ),
