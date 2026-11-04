@@ -54,7 +54,7 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-typedef CalculatorMethod = void Function(int value);
+typedef CalculatorMethod = double Function(double left, double right);
 class _MyHomePageState extends State<MyHomePage> {
   /* ---------- Calculator Methods ---------- */
   late final Map<String, CalculatorMethod> calculatorMethods = {
@@ -65,68 +65,47 @@ class _MyHomePageState extends State<MyHomePage> {
   };
 
   /* ---------- State Variables ---------- */
-  int? _answer;
+  double? _left;
+  double? _right;
   bool _hasCompletedInitialCalculation = false;
   CalculatorMethod? _selectedMethod;
-  int? _nextValue;
+  double? _previousValue;
 
   /* ---------- Operations ---------- */
-  void _add(int value) {
-    setState(() {
-      if (_answer is! int) {
-        throw FormatException("Answer is null, cannot add");
-      }
-      _answer = _answer! + value;
-    });
+  double _add(double value, double right) {
+    return value + right;
   }
-  void _subtract(int value) {
-    setState(() {
-      if (_answer is! int) {
-        throw FormatException("Answer is null, cannot subtract");
-      }
-      _answer = _answer! - value;
-    });
+  double _subtract(double value, double right) {
+    return value - right;
   }
-  void _multiply(int value) {
-    setState(() {
-      if (_answer is! int) {
-        throw FormatException("Answer is null, cannot multiply");
-      }
-      _answer = _answer! * value;
-    });
+  double _multiply(double value, double right) {
+    return value * right;
   }
-  void _divide(int value) {
-    setState(() {
-      if (_answer is! int) {
-        throw FormatException("Answer is null, cannot divide");
-      }
-      if (value != 0) {
-        _answer = _answer! ~/ value; // Integer division
-      } else {
-        throw ArgumentError("Cannot divide by zero");
-      }
-    });
+  double _divide(double value, double right) {
+    return value / right;
   }
 
+
   /* ---------- Number Input Handlers ---------- */
-  int appendDigit(int currentValue, int latestInput) {
+  double appendDigit(double currentValue, double latestInput) {
     return currentValue * 10 + latestInput;
   }
-  void _updateAnswer(int number) {
+  void _updateLeft(double number) {
     setState(() {
-      _answer = _answer == null ? number : appendDigit(_answer!, number);
+      _left = _left == null ? number : appendDigit(_left!, number);
     });
   }
-  void _updateNextValue(int number) {
+  void __updateRight(double number) {
     setState(() {
-      _nextValue = _nextValue == null ? number : appendDigit(_nextValue!, number);
+      _right = _right == null ? number : appendDigit(_right!, number);
     });
   }
-  void _numberButtonPressed(int number) {
+  void _numberButtonPressed(double number) {
+    _previousValue = number;
     if (_selectedMethod == null && _hasCompletedInitialCalculation == false) {
-      _updateAnswer(number);
+      _updateLeft(number);
     } else if (_selectedMethod != null) {
-      _updateNextValue(number);
+      __updateRight(number);
     } else {
       _resetCalculator(number);
     }
@@ -135,20 +114,22 @@ class _MyHomePageState extends State<MyHomePage> {
   /* ---------- Operator Input Handlers ---------- */
   void _operationButtonPressed(CalculatorMethod method) {
     setState(() {
-        _answer ??= 0;
+        _left ??= 0;
         _selectedMethod = method;
     });
   }
 
   /* ---------- Calculate Result ---------- */
   void _calculateResult() {
-    if (_answer != null && _selectedMethod != null && _nextValue != null) {
+    if (_left != null && _selectedMethod != null && _right != null) {
       _hasCompletedInitialCalculation = true;
       try {
-        _selectedMethod!(_nextValue!);
-      } on ArgumentError catch (error) {
-        _showToast(error.message);
-        return;
+        final result = _selectedMethod!(_left!, _right!);
+        setState(() {
+          _left = result;
+          _right = null;
+          _selectedMethod = null;
+        });
       } catch (error, stackTrace) {
         developer.log(
           'Calculation failed',
@@ -159,11 +140,6 @@ class _MyHomePageState extends State<MyHomePage> {
         );
         _showToast('Unexpected error occurred during calculation.');
       }
-      _selectedMethod!(_nextValue!);
-      setState(() {
-        _nextValue = null;
-        _selectedMethod = null;
-      });
     }
   }
 
@@ -177,22 +153,51 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   /* ---------- Reset Functions ---------- */
-  void _resetCalculator(int? initialValue) {
+  void _resetCalculator(double? initialValue) {
     setState(() {
-      _answer = initialValue;
-      _nextValue = null;
+      _left = initialValue;
+      _right = null;
+      _previousValue = null;
       _selectedMethod = null;
       _hasCompletedInitialCalculation = false;
     });
   }
+  double _calculatePreviousValue(double currentValue) {
+    return (currentValue - _previousValue!) / 10;
+  }
+  void _backspace() {
+    if (_right != null) {
+      setState(() {
+        _right = _calculatePreviousValue(_right!);
+      });
+    } else if (_left != null) {
+      setState(() {
+        _left = _calculatePreviousValue(_left!);
+      });
+    }
+  }
+
+  /* ---------- Formatting and Display ---------- */
+  String? formatNumber(double? value) {
+  if (value == null) return null;
+  if (!value.isFinite) return value.toString();
+
+  var text = value.toStringAsFixed(10);
+  if (text.contains('.')) {
+    text = text.replaceFirst(RegExp(r'0+$'), '');
+    text = text.replaceFirst(RegExp(r'\.$'), '');
+  }
+  return text == '-0' ? '0' : text;
+}
 
   @override
   Widget build(BuildContext context) {
     const buttonPadding = EdgeInsets.all(8.0);
-    String? methodString = _selectedMethod != null ? calculatorMethods.keys.firstWhere((k) => calculatorMethods[k] == _selectedMethod) : null;
-    String? nextValueString = _nextValue?.toString();
-    List<String?> displayValues = [_answer.toString(), methodString, nextValueString].where((element) => element != null).toList();
-    String displayText = displayValues.join(' ');
+    final String? methodString = _selectedMethod != null ? calculatorMethods.keys.firstWhere((k) => calculatorMethods[k] == _selectedMethod) : null;
+    final String? nextValueString = formatNumber(_right);
+    final String answerString = formatNumber(_left) ?? '0';
+    final List<String?> displayValues = [answerString, methodString, nextValueString].where((element) => element != null).toList();
+    final String displayText = displayValues.join(' ');
     // This method is rerun every time setState is called, for instance as done
     // by the _incrementCounter method above.
     //
@@ -244,10 +249,10 @@ class _MyHomePageState extends State<MyHomePage> {
           spacing: 10.0,
           runSpacing: 10.0,
           children: [
-            for (int i = 0; i <= 9; i++)
+            for (double i = 0; i <= 9; i++)
               ElevatedButton(
                 onPressed: () => _numberButtonPressed(i),
-                child: Text('$i'),
+                child: Text('${i.toInt()}'),
               ),
             for (String method in calculatorMethods.keys)
               ElevatedButton(
@@ -257,6 +262,14 @@ class _MyHomePageState extends State<MyHomePage> {
               ElevatedButton(
                 onPressed: _calculateResult,
                 child: const Text('='),
+              ),
+              ElevatedButton(
+                onPressed: () => _resetCalculator(null),
+                child: const Text('AC'),
+              ),
+              ElevatedButton(
+                onPressed: () => _backspace(),
+                child: const Icon(Icons.backspace),
               ),
           ],
         ),
