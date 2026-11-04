@@ -315,7 +315,6 @@ class _MyHomePageState extends State<MyHomePage> {
                 children: [
                   Column(
                     children: [
-                      const Text('Current Sum:'),
                       Text(
                         displayText,
                         textAlign: TextAlign.center,
