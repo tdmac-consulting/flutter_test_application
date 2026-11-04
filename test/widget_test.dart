@@ -1,30 +1,180 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:flutter_test_application/main.dart';
+import 'package:flutter_test_application/app.dart';
+import 'package:flutter_test_application/features/calculator/widgets/calculator_display.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  Future<void> startCalculator(WidgetTester tester) async {
+    await tester.pumpWidget(const CalculatorApp());
+  }
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+  Future<void> tapButton(WidgetTester tester, String label) async {
+    await tester.tap(find.widgetWithText(ElevatedButton, label));
+    await tester.pump();
+  }
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
+  Finder displayed(String value) => find.descendant(
+    of: find.byType(CalculatorDisplay),
+    matching: find.text(value),
+  );
+
+  testWidgets('calculator adds two numbers', (WidgetTester tester) async {
+    await startCalculator(tester);
+    await tester.tap(find.widgetWithText(ElevatedButton, '7'));
+    await tester.tap(find.widgetWithText(ElevatedButton, '+'));
+    await tester.tap(find.widgetWithText(ElevatedButton, '3'));
+    await tester.tap(find.widgetWithText(ElevatedButton, '='));
     await tester.pump();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(displayed('10'), findsOneWidget);
+  });
+
+  testWidgets('calculator supports all operations', (
+    WidgetTester tester,
+  ) async {
+    await startCalculator(tester);
+
+    for (final (left, operator, right, result) in [
+      ('8', '-', '3', '5'),
+      ('4', '*', '3', '12'),
+      ('8', '/', '2', '4'),
+    ]) {
+      await tapButton(tester, 'AC');
+      await tapButton(tester, left);
+      await tapButton(tester, operator);
+      await tapButton(tester, right);
+      await tapButton(tester, '=');
+      expect(displayed(result), findsOneWidget);
+    }
+  });
+
+  testWidgets('operator starts with zero and can be changed', (
+    WidgetTester tester,
+  ) async {
+    await startCalculator(tester);
+
+    await tapButton(tester, '+');
+    expect(displayed('0 +'), findsOneWidget);
+    await tapButton(tester, '-');
+    expect(displayed('0 -'), findsOneWidget);
+    await tapButton(tester, '2');
+    await tapButton(tester, '=');
+
+    expect(displayed('-2'), findsOneWidget);
+  });
+
+  testWidgets('decimal input avoids duplicates and limits precision', (
+    WidgetTester tester,
+  ) async {
+    await startCalculator(tester);
+
+    await tapButton(tester, '.');
+    await tapButton(tester, '1');
+    await tapButton(tester, '.');
+    await tapButton(tester, '2');
+    expect(displayed('0.12'), findsOneWidget);
+
+    await tapButton(tester, '+');
+    await tapButton(tester, '.');
+    await tapButton(tester, '.');
+    await tapButton(tester, '3');
+    expect(displayed('0.12 + 0.3'), findsOneWidget);
+
+    await tapButton(tester, 'AC');
+    await tapButton(tester, '.');
+    for (var index = 0; index < 11; index++) {
+      await tapButton(tester, '1');
+    }
+    expect(displayed('0.1111111111'), findsOneWidget);
+  });
+
+  testWidgets('new input after a result starts a fresh calculation', (
+    WidgetTester tester,
+  ) async {
+    await startCalculator(tester);
+    await tapButton(tester, '2');
+    await tapButton(tester, '+');
+    await tapButton(tester, '2');
+    await tapButton(tester, '=');
+    await tapButton(tester, '7');
+
+    expect(displayed('7'), findsOneWidget);
+
+    await tapButton(tester, '+');
+    await tapButton(tester, '1');
+    await tapButton(tester, '=');
+    await tapButton(tester, '.');
+    expect(displayed('0.'), findsOneWidget);
+  });
+
+  testWidgets('backspace removes right then left input', (
+    WidgetTester tester,
+  ) async {
+    await startCalculator(tester);
+    await tapButton(tester, '1');
+    await tapButton(tester, '2');
+    await tapButton(tester, '+');
+    await tapButton(tester, '3');
+    await tapButton(tester, '4');
+    await tester.tap(find.byIcon(Icons.backspace));
+    await tester.pump();
+    expect(displayed('12 + 3'), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.backspace));
+    await tester.pump();
+    expect(displayed('12 +'), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.backspace));
+    await tester.pump();
+    expect(displayed('1 +'), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.backspace));
+    await tester.pump();
+    expect(displayed('0 +'), findsOneWidget);
+  });
+
+  testWidgets('clear resets an in-progress calculation', (
+    WidgetTester tester,
+  ) async {
+    await startCalculator(tester);
+    await tapButton(tester, '9');
+    await tapButton(tester, '+');
+    await tapButton(tester, '1');
+    await tapButton(tester, 'AC');
+
+    expect(displayed('0'), findsOneWidget);
+  });
+
+  testWidgets('equals leaves incomplete calculations unchanged', (
+    WidgetTester tester,
+  ) async {
+    await startCalculator(tester);
+    await tapButton(tester, '=');
+    await tapButton(tester, '6');
+    await tapButton(tester, '+');
+    await tapButton(tester, '=');
+
+    expect(displayed('6 +'), findsOneWidget);
+  });
+
+  testWidgets('division by zero displays infinity', (
+    WidgetTester tester,
+  ) async {
+    await startCalculator(tester);
+    await tapButton(tester, '1');
+    await tapButton(tester, '/');
+    await tapButton(tester, '0');
+    await tapButton(tester, '=');
+
+    expect(displayed('Infinity'), findsOneWidget);
+  });
+
+  testWidgets('calculator app configures its title and dark theme', (
+    WidgetTester tester,
+  ) async {
+    await startCalculator(tester);
+
+    final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+    expect(app.title, 'Calculator App');
+    expect(app.theme!.brightness, Brightness.dark);
+    expect(find.text('Calculator App'), findsOneWidget);
   });
 }
