@@ -1,0 +1,157 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test_application/features/calculator/calculator_logic.dart';
+import 'package:flutter_test_application/features/calculator/widgets/calculator_display.dart';
+import 'package:flutter_test_application/features/calculator/widgets/calculator_keypad.dart';
+
+class CalculatorPage extends StatefulWidget {
+  const CalculatorPage({super.key, required this.title});
+
+  final String title;
+
+  @override
+  State<CalculatorPage> createState() => _CalculatorPageState();
+}
+
+class _CalculatorPageState extends State<CalculatorPage> {
+  static const int _maxDecimalPlaces = 10;
+
+  String? _left;
+  String? _right;
+  String? _selectedOperator;
+  bool _hasCompletedInitialCalculation = false;
+
+  void _numberButtonPressed(int number) {
+    final digit = number.toString();
+    if (_selectedOperator == null && _hasCompletedInitialCalculation) {
+      _resetCalculator(digit);
+      return;
+    }
+
+    final currentValue = _selectedOperator == null ? _left : _right;
+    final decimalIndex = currentValue?.indexOf('.') ?? -1;
+    if (decimalIndex != -1 &&
+        currentValue!.length - decimalIndex - 1 >= _maxDecimalPlaces) {
+      return;
+    }
+
+    setState(() {
+      if (_selectedOperator == null) {
+        _left = '${_left ?? ''}$digit';
+      } else {
+        _right = '${_right ?? ''}$digit';
+      }
+    });
+  }
+
+  void _operationButtonPressed(String operator) {
+    setState(() {
+      _left ??= '0';
+      _selectedOperator = operator;
+    });
+  }
+
+  void _decimalButtonPressed() {
+    if (_selectedOperator == null && _hasCompletedInitialCalculation) {
+      _resetCalculator('0.');
+      return;
+    }
+
+    final currentValue = _selectedOperator == null ? _left : _right;
+    if (currentValue?.contains('.') ?? false) {
+      return;
+    }
+
+    setState(() {
+      final valueWithDecimal = '${currentValue ?? '0'}.';
+      if (_selectedOperator == null) {
+        _left = valueWithDecimal;
+      } else {
+        _right = valueWithDecimal;
+      }
+    });
+  }
+
+  void _calculateResult() {
+    final left = double.tryParse(_left ?? '');
+    final right = double.tryParse(_right ?? '');
+    final operator = _selectedOperator;
+    if (left == null || right == null || operator == null) {
+      return;
+    }
+
+    final result = CalculatorLogic.calculate(operator, left, right);
+    if (result == null) {
+      return;
+    }
+
+    setState(() {
+      _left = CalculatorLogic.formatResult(result);
+      _right = null;
+      _selectedOperator = null;
+      _hasCompletedInitialCalculation = true;
+    });
+  }
+
+  void _resetCalculator(String? initialValue) {
+    setState(() {
+      _left = initialValue;
+      _right = null;
+      _selectedOperator = null;
+      _hasCompletedInitialCalculation = false;
+    });
+  }
+
+  void _backspace() {
+    if (_right != null) {
+      setState(() {
+        _right = _removeLastCharacter(_right!);
+      });
+    } else if (_left != null) {
+      setState(() {
+        _left = _removeLastCharacter(_left!);
+      });
+    }
+  }
+
+  String? _removeLastCharacter(String value) {
+    return value.length == 1 ? null : value.substring(0, value.length - 1);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final displayText = [_left ?? '0', _selectedOperator, _right]
+        .whereType<String>()
+        .join(' ');
+
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        title: Text(widget.title),
+      ),
+      body: LayoutBuilder(
+        builder: (context, constraints) => SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  CalculatorDisplay(value: displayText),
+                  CalculatorKeypad(
+                    onDigitPressed: _numberButtonPressed,
+                    onOperatorPressed: _operationButtonPressed,
+                    onDecimalPressed: _decimalButtonPressed,
+                    onBackspacePressed: _backspace,
+                    onClearPressed: () => _resetCalculator(null),
+                    onEqualsPressed: _calculateResult,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
