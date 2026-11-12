@@ -39,6 +39,9 @@ abstract final class CalculatorLogic {
     if (digits.isEmpty || !RegExp(r'^\d+$').hasMatch(digits)) {
       return value;
     }
+    if (digits.length > 10) {
+      return _formatScientific(value);
+    }
 
     final groupedInteger = StringBuffer();
     for (var index = 0; index < digits.length; index++) {
@@ -52,5 +55,15 @@ abstract final class CalculatorLogic {
         ? ''
         : '${_enGbNumberFormat.symbols.DECIMAL_SEP}${value.substring(decimalIndex + 1)}';
     return '${isNegative ? '-' : ''}$groupedInteger$fraction';
+  }
+
+  static String _formatScientific(String value) {
+    final number = double.tryParse(value);
+    if (number == null || !number.isFinite) {
+      return value;
+    }
+
+    final parts = number.toStringAsExponential().split('e');
+    return '${parts[0]}e${int.parse(parts[1])}';
   }
 }

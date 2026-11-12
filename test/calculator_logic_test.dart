@@ -45,6 +45,14 @@ void main() {
       expect(CalculatorLogic.formatForDisplay('-1234567.25'), '-1,234,567.25');
     });
 
+    test('uses scientific notation for more than ten integer digits', () {
+      expect(CalculatorLogic.formatForDisplay('10000000000'), '1e10');
+      expect(
+        CalculatorLogic.formatForDisplay('-12345678901'),
+        '-1.2345678901e10',
+      );
+    });
+
     test('preserves the entered fractional digits and non-numeric values', () {
       expect(
         CalculatorLogic.formatForDisplay('1234567.8900'),

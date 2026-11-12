@@ -46,6 +46,18 @@ void main() {
     expect(displayed('3,234,567'), findsOneWidget);
   });
 
+  testWidgets('calculator uses scientific notation beyond ten digits', (
+    WidgetTester tester,
+  ) async {
+    await startCalculator(tester);
+    await tapButton(tester, '1');
+    for (var index = 0; index < 10; index++) {
+      await tapButton(tester, '0');
+    }
+
+    expect(displayed('1e10'), findsOneWidget);
+  });
+
   testWidgets('calculator supports all operations', (
     WidgetTester tester,
   ) async {
