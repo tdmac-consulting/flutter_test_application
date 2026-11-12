@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test_application/features/calculator/calculator_logic.dart';
 import 'package:flutter_test_application/features/calculator/widgets/calculator_display.dart';
 import 'package:flutter_test_application/features/calculator/widgets/calculator_keypad.dart';
@@ -216,6 +217,60 @@ class _CalculatorPageState extends State<CalculatorPage> {
     return value.length == 1 ? null : value.substring(0, value.length - 1);
   }
 
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+      return KeyEventResult.ignored;
+    }
+
+    final key = event.logicalKey;
+    final character = event.character;
+    final digit = int.tryParse(character ?? '');
+    if (digit != null) {
+      _numberButtonPressed(digit);
+      return KeyEventResult.handled;
+    }
+
+    switch (character) {
+      case '+':
+        _operationButtonPressed('+');
+        return KeyEventResult.handled;
+      case '-':
+        _operationButtonPressed('-');
+        return KeyEventResult.handled;
+      case '*':
+        _operationButtonPressed('*');
+        return KeyEventResult.handled;
+      case '/':
+        _operationButtonPressed('/');
+        return KeyEventResult.handled;
+      case '.':
+        _decimalButtonPressed();
+        return KeyEventResult.handled;
+      case '%':
+        _percentageButtonPressed();
+        return KeyEventResult.handled;
+      case '=':
+        _calculateResult();
+        return KeyEventResult.handled;
+    }
+
+    if (key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter) {
+      _calculateResult();
+    } else if (key == LogicalKeyboardKey.backspace) {
+      _backspace();
+    } else if (key == LogicalKeyboardKey.escape ||
+        key == LogicalKeyboardKey.delete) {
+      _resetCalculator(null);
+    } else if (key == LogicalKeyboardKey.f9) {
+      _toggleSign();
+    } else {
+      return KeyEventResult.ignored;
+    }
+
+    return KeyEventResult.handled;
+  }
+
   @override
   Widget build(BuildContext context) {
     final displayText = [
@@ -225,32 +280,36 @@ class _CalculatorPageState extends State<CalculatorPage> {
         '${CalculatorLogic.formatForDisplay(_right!)}${_rightIsPercentage ? '%' : ''}',
     ].whereType<String>().join(' ');
 
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        title: Text(widget.title),
-      ),
-      body: LayoutBuilder(
-        builder: (context, constraints) => SingleChildScrollView(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: constraints.maxHeight),
-            child: Padding(
-              padding: const EdgeInsets.all(8),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  CalculatorDisplay(value: displayText),
-                  CalculatorKeypad(
-                    onDigitPressed: _numberButtonPressed,
-                    onOperatorPressed: _operationButtonPressed,
-                    onDecimalPressed: _decimalButtonPressed,
-                    onBackspacePressed: _backspace,
-                    onClearPressed: () => _resetCalculator(null),
-                    onEqualsPressed: _calculateResult,
-                    onToggleSignPressed: _toggleSign,
-                    onPercentagePressed: _percentageButtonPressed,
-                  ),
-                ],
+    return Focus(
+      autofocus: true,
+      onKeyEvent: _handleKeyEvent,
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          title: Text(widget.title),
+        ),
+        body: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    CalculatorDisplay(value: displayText),
+                    CalculatorKeypad(
+                      onDigitPressed: _numberButtonPressed,
+                      onOperatorPressed: _operationButtonPressed,
+                      onDecimalPressed: _decimalButtonPressed,
+                      onBackspacePressed: _backspace,
+                      onClearPressed: () => _resetCalculator(null),
+                      onEqualsPressed: _calculateResult,
+                      onToggleSignPressed: _toggleSign,
+                      onPercentagePressed: _percentageButtonPressed,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

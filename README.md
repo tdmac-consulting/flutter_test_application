@@ -15,3 +15,11 @@ A few resources to get you started if this is your first Flutter project:
 For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
+
+## Keyboard support
+
+The calculator accepts hardware keyboard input on desktop and on mobile devices
+with a connected keyboard. Use digits, `+`, `-`, `*`, `/`, and `.` to enter
+calculations; press Enter or `=` to calculate. Backspace deletes the last
+character, Escape or Delete clears the calculator, F9 toggles the sign, and
+`%` applies percentage.
