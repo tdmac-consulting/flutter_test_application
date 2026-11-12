@@ -63,6 +63,47 @@ void main() {
     expect(displayed('-2'), findsOneWidget);
   });
 
+  testWidgets('sign key toggles the answer and addition/subtraction method', (
+    WidgetTester tester,
+  ) async {
+    await startCalculator(tester);
+    await tapButton(tester, '8');
+    await tapButton(tester, '+/-');
+    expect(displayed('-8'), findsOneWidget);
+    await tapButton(tester, '+/-');
+    expect(displayed('8'), findsOneWidget);
+
+    await tapButton(tester, '+');
+    await tapButton(tester, '+/-');
+    expect(displayed('8 -'), findsOneWidget);
+    await tapButton(tester, '+/-');
+    expect(displayed('8 +'), findsOneWidget);
+  });
+
+  testWidgets(
+    'sign key changes a non-additive right operand only after digits',
+    (WidgetTester tester) async {
+      await startCalculator(tester);
+      await tapButton(tester, '6');
+      await tapButton(tester, '*');
+      await tapButton(tester, '+/-');
+      expect(displayed('6 *'), findsOneWidget);
+
+      await tapButton(tester, '.');
+      await tapButton(tester, '+/-');
+      expect(displayed('6 * 0.'), findsOneWidget);
+      await tapButton(tester, '2');
+      await tapButton(tester, '+/-');
+      expect(displayed('6 * -0.2'), findsOneWidget);
+      await tapButton(tester, '+/-');
+      expect(displayed('6 * 0.2'), findsOneWidget);
+      await tester.tap(find.byIcon(Icons.backspace));
+      await tester.pump();
+      await tapButton(tester, '+/-');
+      expect(displayed('6 * 0.'), findsOneWidget);
+    },
+  );
+
   testWidgets('decimal input avoids duplicates and limits precision', (
     WidgetTester tester,
   ) async {

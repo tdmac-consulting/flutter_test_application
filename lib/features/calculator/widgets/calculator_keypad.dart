@@ -9,6 +9,7 @@ class CalculatorKeypad extends StatelessWidget {
     required this.onBackspacePressed,
     required this.onClearPressed,
     required this.onEqualsPressed,
+    required this.onToggleSignPressed,
   });
 
   final ValueChanged<int> onDigitPressed;
@@ -17,6 +18,7 @@ class CalculatorKeypad extends StatelessWidget {
   final VoidCallback onBackspacePressed;
   final VoidCallback onClearPressed;
   final VoidCallback onEqualsPressed;
+  final VoidCallback onToggleSignPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +50,7 @@ class CalculatorKeypad extends StatelessWidget {
           _button(context, '+', () => onOperatorPressed('+'), isAction: true),
         ]),
         _row([
-          null,
+          _button(context, '+/-', onToggleSignPressed),
           _button(context, '0', () => onDigitPressed(0)),
           _button(context, '.', onDecimalPressed),
           _button(context, '=', onEqualsPressed, isAction: true),

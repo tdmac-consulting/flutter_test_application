@@ -32,6 +32,7 @@ void main() {
     var backspacePresses = 0;
     var clearPresses = 0;
     var equalsPresses = 0;
+    var signTogglePresses = 0;
 
     await tester.pumpWidget(
       MaterialApp(
@@ -43,6 +44,7 @@ void main() {
             onBackspacePressed: () => backspacePresses++,
             onClearPressed: () => clearPresses++,
             onEqualsPressed: () => equalsPresses++,
+            onToggleSignPressed: () => signTogglePresses++,
           ),
         ),
       ),
@@ -58,6 +60,7 @@ void main() {
     await tester.tap(find.widgetWithText(ElevatedButton, 'AC'));
     await tester.tap(find.widgetWithText(ElevatedButton, '='));
     await tester.tap(find.byIcon(Icons.backspace));
+    await tester.tap(find.widgetWithText(ElevatedButton, '+/-'));
 
     expect(digits, [7, 8, 9, 4, 5, 6, 1, 2, 3, 0]);
     expect(operators, ['/', '*', '-', '+']);
@@ -65,6 +68,7 @@ void main() {
     expect(backspacePresses, 1);
     expect(clearPresses, 1);
     expect(equalsPresses, 1);
+    expect(signTogglePresses, 1);
   });
 
   testWidgets('action keys use the theme primary color', (
@@ -84,6 +88,7 @@ void main() {
             onBackspacePressed: () {},
             onClearPressed: () {},
             onEqualsPressed: () {},
+            onToggleSignPressed: () {},
           ),
         ),
       ),

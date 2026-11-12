@@ -18,6 +18,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
   String? _left;
   String? _right;
   String? _selectedOperator;
+  int _rightDigitCount = 0;
   bool _hasCompletedInitialCalculation = false;
 
   void _numberButtonPressed(int number) {
@@ -39,6 +40,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
         _left = '${_left ?? ''}$digit';
       } else {
         _right = '${_right ?? ''}$digit';
+        _rightDigitCount++;
       }
     });
   }
@@ -87,15 +89,52 @@ class _CalculatorPageState extends State<CalculatorPage> {
     setState(() {
       _left = CalculatorLogic.formatResult(result);
       _right = null;
+      _rightDigitCount = 0;
       _selectedOperator = null;
       _hasCompletedInitialCalculation = true;
     });
+  }
+
+  void _toggleSign() {
+    final operator = _selectedOperator;
+    if (operator == '+' || operator == '-') {
+      setState(() {
+        _selectedOperator = operator == '+' ? '-' : '+';
+      });
+      return;
+    }
+
+    if (operator != null) {
+      final right = _right;
+      if (right == null || _rightDigitCount == 0) {
+        return;
+      }
+
+      setState(() {
+        _right = _invertSign(right);
+      });
+      return;
+    }
+
+    final left = _left;
+    if (left == null) {
+      return;
+    }
+
+    setState(() {
+      _left = _invertSign(left);
+    });
+  }
+
+  String _invertSign(String value) {
+    return value.startsWith('-') ? value.substring(1) : '-$value';
   }
 
   void _resetCalculator(String? initialValue) {
     setState(() {
       _left = initialValue;
       _right = null;
+      _rightDigitCount = 0;
       _selectedOperator = null;
       _hasCompletedInitialCalculation = false;
     });
@@ -104,6 +143,9 @@ class _CalculatorPageState extends State<CalculatorPage> {
   void _backspace() {
     if (_right != null) {
       setState(() {
+        if (RegExp(r'\d$').hasMatch(_right!)) {
+          _rightDigitCount--;
+        }
         _right = _removeLastCharacter(_right!);
       });
     } else if (_left != null) {
@@ -119,9 +161,11 @@ class _CalculatorPageState extends State<CalculatorPage> {
 
   @override
   Widget build(BuildContext context) {
-    final displayText = [_left ?? '0', _selectedOperator, _right]
-        .whereType<String>()
-        .join(' ');
+    final displayText = [
+      _left ?? '0',
+      _selectedOperator,
+      _right,
+    ].whereType<String>().join(' ');
 
     return Scaffold(
       appBar: AppBar(
@@ -145,6 +189,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
                     onBackspacePressed: _backspace,
                     onClearPressed: () => _resetCalculator(null),
                     onEqualsPressed: _calculateResult,
+                    onToggleSignPressed: _toggleSign,
                   ),
                 ],
               ),
