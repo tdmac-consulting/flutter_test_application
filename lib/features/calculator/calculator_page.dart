@@ -46,6 +46,18 @@ class _CalculatorPageState extends State<CalculatorPage> {
   }
 
   void _operationButtonPressed(String operator) {
+    final result = _currentResult();
+    if (result != null) {
+      setState(() {
+        _left = CalculatorLogic.formatResult(result);
+        _right = null;
+        _rightDigitCount = 0;
+        _selectedOperator = operator;
+        _hasCompletedInitialCalculation = false;
+      });
+      return;
+    }
+
     setState(() {
       _left ??= '0';
       _selectedOperator = operator;
@@ -74,14 +86,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
   }
 
   void _calculateResult() {
-    final left = double.tryParse(_left ?? '');
-    final right = double.tryParse(_right ?? '');
-    final operator = _selectedOperator;
-    if (left == null || right == null || operator == null) {
-      return;
-    }
-
-    final result = CalculatorLogic.calculate(operator, left, right);
+    final result = _currentResult();
     if (result == null) {
       return;
     }
@@ -93,6 +98,17 @@ class _CalculatorPageState extends State<CalculatorPage> {
       _selectedOperator = null;
       _hasCompletedInitialCalculation = true;
     });
+  }
+
+  double? _currentResult() {
+    final left = double.tryParse(_left ?? '');
+    final right = double.tryParse(_right ?? '');
+    final operator = _selectedOperator;
+    if (left == null || right == null || operator == null) {
+      return null;
+    }
+
+    return CalculatorLogic.calculate(operator, left, right);
   }
 
   void _toggleSign() {

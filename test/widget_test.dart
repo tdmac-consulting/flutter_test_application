@@ -77,6 +77,22 @@ void main() {
     }
   });
 
+  testWidgets('selecting an operator calculates and starts the next step', (
+    WidgetTester tester,
+  ) async {
+    await startCalculator(tester);
+    await tapButton(tester, '2');
+    await tapButton(tester, '+');
+    await tapButton(tester, '3');
+    await tapButton(tester, '*');
+
+    expect(displayed('5 *'), findsOneWidget);
+
+    await tapButton(tester, '4');
+    await tapButton(tester, '=');
+    expect(displayed('20'), findsOneWidget);
+  });
+
   testWidgets('operator starts with zero and can be changed', (
     WidgetTester tester,
   ) async {
