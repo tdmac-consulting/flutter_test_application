@@ -33,6 +33,7 @@ void main() {
     var clearPresses = 0;
     var equalsPresses = 0;
     var signTogglePresses = 0;
+    var percentagePresses = 0;
 
     await tester.pumpWidget(
       MaterialApp(
@@ -45,6 +46,7 @@ void main() {
             onClearPressed: () => clearPresses++,
             onEqualsPressed: () => equalsPresses++,
             onToggleSignPressed: () => signTogglePresses++,
+            onPercentagePressed: () => percentagePresses++,
           ),
         ),
       ),
@@ -61,6 +63,7 @@ void main() {
     await tester.tap(find.widgetWithText(ElevatedButton, '='));
     await tester.tap(find.byIcon(Icons.backspace));
     await tester.tap(find.widgetWithText(ElevatedButton, '+/-'));
+    await tester.tap(find.widgetWithText(ElevatedButton, '%'));
 
     expect(digits, [7, 8, 9, 4, 5, 6, 1, 2, 3, 0]);
     expect(operators, ['/', '*', '-', '+']);
@@ -69,6 +72,7 @@ void main() {
     expect(clearPresses, 1);
     expect(equalsPresses, 1);
     expect(signTogglePresses, 1);
+    expect(percentagePresses, 1);
   });
 
   testWidgets('action keys use the theme primary color', (
@@ -89,6 +93,7 @@ void main() {
             onClearPressed: () {},
             onEqualsPressed: () {},
             onToggleSignPressed: () {},
+            onPercentagePressed: () {},
           ),
         ),
       ),

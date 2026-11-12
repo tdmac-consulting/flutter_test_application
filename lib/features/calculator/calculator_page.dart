@@ -19,6 +19,8 @@ class _CalculatorPageState extends State<CalculatorPage> {
   String? _right;
   String? _selectedOperator;
   int _rightDigitCount = 0;
+  bool _leftIsPercentage = false;
+  bool _rightIsPercentage = false;
   bool _hasCompletedInitialCalculation = false;
 
   void _numberButtonPressed(int number) {
@@ -52,6 +54,8 @@ class _CalculatorPageState extends State<CalculatorPage> {
         _left = CalculatorLogic.formatResult(result);
         _right = null;
         _rightDigitCount = 0;
+        _leftIsPercentage = false;
+        _rightIsPercentage = false;
         _selectedOperator = operator;
         _hasCompletedInitialCalculation = false;
       });
@@ -95,6 +99,8 @@ class _CalculatorPageState extends State<CalculatorPage> {
       _left = CalculatorLogic.formatResult(result);
       _right = null;
       _rightDigitCount = 0;
+      _leftIsPercentage = false;
+      _rightIsPercentage = false;
       _selectedOperator = null;
       _hasCompletedInitialCalculation = true;
     });
@@ -108,7 +114,34 @@ class _CalculatorPageState extends State<CalculatorPage> {
       return null;
     }
 
-    return CalculatorLogic.calculate(operator, left, right);
+    final calculationLeft = _leftIsPercentage ? left / 100 : left;
+    final calculationRight = _rightIsPercentage ? right / 100 : right;
+    return CalculatorLogic.calculate(
+      operator,
+      calculationLeft,
+      calculationRight,
+    );
+  }
+
+  void _percentageButtonPressed() {
+    if (_selectedOperator == null) {
+      if (_left == null) {
+        return;
+      }
+
+      setState(() {
+        _leftIsPercentage = true;
+      });
+      return;
+    }
+
+    if (_right == null) {
+      return;
+    }
+
+    setState(() {
+      _rightIsPercentage = true;
+    });
   }
 
   void _toggleSign() {
@@ -151,6 +184,8 @@ class _CalculatorPageState extends State<CalculatorPage> {
       _left = initialValue;
       _right = null;
       _rightDigitCount = 0;
+      _leftIsPercentage = false;
+      _rightIsPercentage = false;
       _selectedOperator = null;
       _hasCompletedInitialCalculation = false;
     });
@@ -163,10 +198,16 @@ class _CalculatorPageState extends State<CalculatorPage> {
           _rightDigitCount--;
         }
         _right = _removeLastCharacter(_right!);
+        if (_right == null) {
+          _rightIsPercentage = false;
+        }
       });
     } else if (_left != null) {
       setState(() {
         _left = _removeLastCharacter(_left!);
+        if (_left == null) {
+          _leftIsPercentage = false;
+        }
       });
     }
   }
@@ -178,9 +219,10 @@ class _CalculatorPageState extends State<CalculatorPage> {
   @override
   Widget build(BuildContext context) {
     final displayText = [
-      CalculatorLogic.formatForDisplay(_left ?? '0'),
+      '${CalculatorLogic.formatForDisplay(_left ?? '0')}${_leftIsPercentage ? '%' : ''}',
       _selectedOperator,
-      if (_right != null) CalculatorLogic.formatForDisplay(_right!),
+      if (_right != null)
+        '${CalculatorLogic.formatForDisplay(_right!)}${_rightIsPercentage ? '%' : ''}',
     ].whereType<String>().join(' ');
 
     return Scaffold(
@@ -206,6 +248,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
                     onClearPressed: () => _resetCalculator(null),
                     onEqualsPressed: _calculateResult,
                     onToggleSignPressed: _toggleSign,
+                    onPercentagePressed: _percentageButtonPressed,
                   ),
                 ],
               ),

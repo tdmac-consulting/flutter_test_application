@@ -58,6 +58,30 @@ void main() {
     expect(displayed('1e10'), findsOneWidget);
   });
 
+  testWidgets('percentage operands display as percentages in calculations', (
+    WidgetTester tester,
+  ) async {
+    await startCalculator(tester);
+    await tapButton(tester, '6');
+    await tapButton(tester, '0');
+    await tapButton(tester, '%');
+    expect(displayed('60%'), findsOneWidget);
+    await tapButton(tester, '+');
+    await tapButton(tester, '1');
+    await tapButton(tester, '=');
+    expect(displayed('1.6'), findsOneWidget);
+
+    await tapButton(tester, 'AC');
+    await tapButton(tester, '2');
+    await tapButton(tester, '+');
+    await tapButton(tester, '5');
+    await tapButton(tester, '0');
+    await tapButton(tester, '%');
+    expect(displayed('2 + 50%'), findsOneWidget);
+    await tapButton(tester, '=');
+    expect(displayed('2.5'), findsOneWidget);
+  });
+
   testWidgets('calculator supports all operations', (
     WidgetTester tester,
   ) async {
