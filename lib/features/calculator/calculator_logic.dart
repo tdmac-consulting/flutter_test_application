@@ -1,6 +1,12 @@
+import 'package:intl/intl.dart';
+
 typedef CalculatorMethod = double Function(double left, double right);
 
 abstract final class CalculatorLogic {
+  static final NumberFormat _enGbNumberFormat = NumberFormat.decimalPattern(
+    'en_GB',
+  );
+
   static final Map<String, CalculatorMethod> operations = {
     '+': (left, right) => left + right,
     '-': (left, right) => left - right,
@@ -21,5 +27,30 @@ abstract final class CalculatorLogic {
       text = text.replaceFirst(RegExp(r'\.$'), '');
     }
     return text == '-0' ? '0' : text;
+  }
+
+  static String formatForDisplay(String value) {
+    final decimalIndex = value.indexOf('.');
+    final integerPart = decimalIndex == -1
+        ? value
+        : value.substring(0, decimalIndex);
+    final isNegative = integerPart.startsWith('-');
+    final digits = isNegative ? integerPart.substring(1) : integerPart;
+    if (digits.isEmpty || !RegExp(r'^\d+$').hasMatch(digits)) {
+      return value;
+    }
+
+    final groupedInteger = StringBuffer();
+    for (var index = 0; index < digits.length; index++) {
+      if (index > 0 && (digits.length - index) % 3 == 0) {
+        groupedInteger.write(_enGbNumberFormat.symbols.GROUP_SEP);
+      }
+      groupedInteger.write(digits[index]);
+    }
+
+    final fraction = decimalIndex == -1
+        ? ''
+        : '${_enGbNumberFormat.symbols.DECIMAL_SEP}${value.substring(decimalIndex + 1)}';
+    return '${isNegative ? '-' : ''}$groupedInteger$fraction';
   }
 }

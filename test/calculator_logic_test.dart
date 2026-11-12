@@ -38,4 +38,20 @@ void main() {
       expect(CalculatorLogic.formatResult(double.nan), 'NaN');
     });
   });
+
+  group('CalculatorLogic.formatForDisplay', () {
+    test('groups long values using en-GB separators', () {
+      expect(CalculatorLogic.formatForDisplay('1234567890'), '1,234,567,890');
+      expect(CalculatorLogic.formatForDisplay('-1234567.25'), '-1,234,567.25');
+    });
+
+    test('preserves the entered fractional digits and non-numeric values', () {
+      expect(
+        CalculatorLogic.formatForDisplay('1234567.8900'),
+        '1,234,567.8900',
+      );
+      expect(CalculatorLogic.formatForDisplay('0.'), '0.');
+      expect(CalculatorLogic.formatForDisplay('Infinity'), 'Infinity');
+    });
+  });
 }

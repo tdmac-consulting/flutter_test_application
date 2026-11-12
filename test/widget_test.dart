@@ -29,6 +29,23 @@ void main() {
     expect(displayed('10'), findsOneWidget);
   });
 
+  testWidgets('calculator groups long displayed values using en-GB format', (
+    WidgetTester tester,
+  ) async {
+    await startCalculator(tester);
+    for (final digit in [1, 2, 3, 4, 5, 6, 7]) {
+      await tapButton(tester, '$digit');
+    }
+    await tapButton(tester, '+');
+    for (final digit in [2, 0, 0, 0, 0, 0, 0]) {
+      await tapButton(tester, '$digit');
+    }
+
+    expect(displayed('1,234,567 + 2,000,000'), findsOneWidget);
+    await tapButton(tester, '=');
+    expect(displayed('3,234,567'), findsOneWidget);
+  });
+
   testWidgets('calculator supports all operations', (
     WidgetTester tester,
   ) async {

@@ -162,9 +162,9 @@ class _CalculatorPageState extends State<CalculatorPage> {
   @override
   Widget build(BuildContext context) {
     final displayText = [
-      _left ?? '0',
+      CalculatorLogic.formatForDisplay(_left ?? '0'),
       _selectedOperator,
-      _right,
+      if (_right != null) CalculatorLogic.formatForDisplay(_right!),
     ].whereType<String>().join(' ');
 
     return Scaffold(
